@@ -1,5 +1,663 @@
-Editor
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Template Renderer</title>
+    <style>
 
-Dominik Bruhn
-Holzwickeder Straße 109c
-44309 Dortmund
+        #toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        #container {
+            display: flex;
+            height: calc(100vh - 40px); /* Abzüglich der Toolbar-Höhe */
+            margin-top: 40px; /* Höhe der Toolbar */
+        }
+
+        #selector {
+            flex: 1;
+            padding: 20px;
+            border-right: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        #renderer {
+            flex: 2;
+            padding: 20px;
+            border-right: 1px solid #ccc; /* Hinzugefügt, um die dritte Spalte vom Renderer zu trennen */
+        }
+
+        #third-column {
+            flex: 1;
+            padding: 20px;
+        }
+
+
+        #resizer {
+            cursor: ew-resize;
+            background-color: #ccc;
+            width: 10px;
+            height: 100%;
+        }
+
+        #resizer2 {
+            cursor: ew-resize;
+            background-color: #ccc;
+            width: 10px;
+            height: 100%;
+        }
+
+
+        .template-image {
+            width: 100px;
+            height: 100px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            transition: border-color 0.3s;
+        }
+
+        .template-image:hover {
+            border-color: #000;
+        }
+
+        .component-selector {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            z-index: 1;
+            top: 0;
+            right: 0;
+        }
+
+        .dragover {
+            border: 2px dashed #0099ff;
+        }
+
+
+        .has-components:hover .component-selector {
+            display: block;
+        }
+
+        .hover-highlight {
+            outline: 2px solid #0099ff; /* Sie können die Farbe und den Stil des Rahmens nach Belieben ändern */
+            cursor: pointer;
+        }
+
+        .selected-component {
+            background-color: #e0e0e0; /* Sie können die Farbe nach Belieben ändern */
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+
+        .component-item {
+            position: relative;
+        }
+
+        .remove-component {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background-color: red;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .drop-indicator {
+            height: 3px; /* Höhe des pinken Streifens */
+            background-color: pink; /* Farbe des pinken Streifens */
+            position: absolute;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+
+        .parent-highlight {
+            border: 2px dashed #0099ff;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .visible {
+            display: flex;
+        }
+
+        #impressumPopup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+        }
+
+
+        #impressumContent {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        #closeButton {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+        }
+
+
+
+    </style>
+</head>
+<body>
+<div id="toolbar">
+    <button onclick="clearRenderer()">Inhalt löschen</button>
+    <button onclick="downloadContent()">Als HTML herunterladen</button>
+    <button onclick="showImpressum()">Impressum</button>
+</div>
+<div id="container">
+    <div id="selector">
+        <!-- Die Bilder werden dynamisch aus dem JSON geladen -->
+
+        <input type="text" id="newTemplateName" placeholder="Template-Name" oninput="checkInputs()">
+        <span id="currentTemplatePath">Keine Datei ausgewählt</span>
+        <input type="file" id="newTemplateFile" style="display:none;" onchange="checkInputs()">
+        <button id="uploadButton" onclick="uploadNewTemplate()">Neues Template hochladen</button>
+        <button id="addButton" onclick="addNewTemplate()" disabled>+</button>
+
+    </div>
+    <div id="resizer"></div>
+    <div id="renderer"></div>
+    <div id="resizer2"></div>
+    <div id="third-column">
+        <!-- Inhalt für die dritte Spalte -->
+    </div>
+</div>
+
+<script>
+    let isResizing = false;
+
+    const container = document.getElementById('container');
+    const resizer = document.getElementById('resizer');
+    const selector = document.getElementById('selector');
+    const renderer = document.getElementById('renderer');
+    let listenersAdded = false;
+
+    // JSON-Definition der Templates
+    const templates = [
+        {
+            name: 'Ebay Template',
+            imagePath: 'path/to/template1-image.jpg',
+            content: '<div><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><div class="layout"><div class="split"><div class="box"><h2>[ IHR LOGO ]</h2><h4>[ Ihr Slogan ]</h4></div></div><div class="split splitGap4"><div class="header secondaryColor card" style="border-radius: 0;"><a target="_blank" href="https://www.ebay.de/str/digitalu">SHOP</a>|<a href="https://www.ebay.de/fdbk/feedback_profile/dortmund.digital" target="_blank">VERKÄUFERPROFIL</a>|<a target="_blank" href="https://www.ebay.de/fdbk/feedback_profile/dortmund.digital">BEWERTUNGEN</a>|<a target="_blank" href="https://www.ebay.de/cnt/intermediatedFAQ?requested=dortmund.digital">KONTAKT</a>|<a target="_blank" href="https://www.ebay.de/usr/dortmund.digital#tab1">ÜBER UNS</a></div></div><div class="split split12 splitGap4 splitMobileReverse"><div class="split splitGap4"></div><div class="split splitGap4"></div></div><div class="split splitGap4"></div><div class="split splitGap4"></div><div class="split splitGap4"><div class="card secondaryColor"><div class="split split4 splitGap4 splitPadding4" style="border-radius: 0;"><div><h2>Unternehmen</h2><div>Diesen Bereich können Sie nutzen, um Ihr Unternehmen vorzustellen. Wählen Sie zwei bis drei prägnante Sätze, die Ihr Unternehmen von der Konkurrenz abhebt.</div></div><div><h2>Hinweis</h2><div>Der Kauf unserer Templates berechtigt Sie, diese unlimitiert für Ihre Auktionen zu verwenden. Ein Weiterverkauf oder die Weitergabe an Dritte ist jedoch untersagt.</div></div><div><h2>Weitere Angebote</h2><div>Viele weitere Angebote finden Sie in unserem eBay Shop oder erhalten Neuheiten und Aktionen bequem mit unserem Newsletter.</div></div><div><h2>Frage?</h2><div>Haben Sie Fragen zu unseren Angeboten? Kontaktieren Sie uns gerne über das eBay Kontaktformular.</div></div></div></div></div></div></div>\n'
+        },
+        {
+            name: 'template2',
+            imagePath: 'path/to/template2-image.jpg',
+            content: '<div id="content2"><h2>Template 2</h2><p>Dies ist das zweite Template.</p></div>'
+        }
+    ];
+
+    // JSON-Definition der Komponenten
+    const components = [
+        {
+            name: 'Einfacher Text',
+            content: '<p>Einfacher Text</p>'
+        },
+        {
+            name: 'Aufzählung',
+            content: '<p class="icon iconCheckmark textCaption">Blitzversand</p>'
+        }, {
+            name: 'Karte',
+            content: '<div class="card"><div class="header secondaryColor">Versand</div><div class="box"><p>Nach Zahlungseingang senden wir Ihnen alle notwendigen Dateien des Templates gemäß Lieferumfang innerhalb von 24 Stunden per E-Mail zu.</p></div></div>\n'
+        },
+        {
+            name: 'IMG',
+            content: '<img src="https://www.taxlancer.de/img/products/small_product_3_transparent.png"/>'
+        }
+    ];
+
+    const thirdColumn = document.getElementById('third-column');
+    components.forEach(component => {
+        const componentDiv = document.createElement('div');
+        componentDiv.innerHTML = component.content;
+        componentDiv.className = 'component-item';
+
+        // Drag-Start-Event
+        componentDiv.setAttribute('draggable', 'true');
+        componentDiv.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', component.content);
+        });
+
+        thirdColumn.appendChild(componentDiv);
+    });
+
+    // Bilder aus dem JSON dynamisch hinzufügen
+    templates.forEach(template => {
+        const img = document.createElement('img');
+        img.src = template.imagePath;
+        img.alt = template.name;
+        img.className = 'template-image';
+        img.onclick = () => renderTemplate(template.name);
+        selector.appendChild(img);
+    });
+
+    resizer.addEventListener('mousedown', (event) => {
+        isResizing = true;
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', () => {
+            isResizing = false;
+            document.removeEventListener('mousemove', handleMouseMove);
+        });
+    });
+
+
+    const resizer2 = document.getElementById('resizer2');
+
+    let isResizing2 = false;
+    resizer2.addEventListener('mousedown', (event) => {
+        isResizing2 = true;
+        document.addEventListener('mousemove', handleMouseMove2);
+        document.addEventListener('mouseup', () => {
+            isResizing2 = false;
+            document.removeEventListener('mousemove', handleMouseMove2);
+        });
+    });
+
+    function handleMouseMove2(event) {
+        const leftWidth = event.clientX - selector.offsetWidth - resizer.offsetWidth;
+        const rightWidth = container.offsetWidth - event.clientX - resizer2.offsetWidth;
+        renderer.style.width = `${leftWidth}px`;
+        renderer.style.flex = 'none';
+        thirdColumn.style.width = `${rightWidth}px`;
+        thirdColumn.style.flex = 'none';
+    }
+
+
+    function enableTextEditing() {
+        const textElements = renderer.querySelectorAll('div, p, h1, h2, h3, h4, h5, h6, span, li, a, td, th, caption, blockquote, legend, label, img');
+
+        textElements.forEach(el => {
+
+            // Wenn das Element ein div ist, überprüfen Sie, ob es nur Text enthält
+            if (el.tagName.toLowerCase() === 'div') {
+                const hasOnlyText = Array.from(el.childNodes).every(node => node.nodeType === 3);
+                if (!hasOnlyText) {
+                    return;
+                }
+            }
+
+            // Hover-Effekt hinzufügen
+            el.addEventListener('mouseover', function () {
+                this.classList.add('hover-highlight');
+            });
+            el.addEventListener('mouseout', function () {
+                this.classList.remove('hover-highlight');
+            });
+
+            // Doppelklick-Ereignis hinzufügen
+            el.addEventListener('dblclick', function () {
+
+                let editableElement;
+                let isImage = el.tagName.toLowerCase() === 'img';
+                let isLink = el.tagName.toLowerCase() === 'a';
+
+                if (isImage) {
+                    editableElement = document.createElement('input');
+                    editableElement.value = el.getAttribute('src');
+                    editableElement.placeholder = 'Bild-URL eingeben';
+                } else if (isLink) {
+                    editableElement = document.createElement('input');
+                    editableElement.value = el.getAttribute('href');
+                    editableElement.placeholder = 'Link-URL eingeben';
+                } else if (this.textContent.includes('\n') || this.textContent.length > 40) {
+                    editableElement = document.createElement('textarea');
+                    editableElement.style.height = '100%';
+                    editableElement.value = this.textContent;
+                } else {
+                    editableElement = document.createElement('input');
+                    editableElement.value = this.textContent;
+                }
+
+                editableElement.style.width = '100%';
+
+                const revertToOriginal = function () {
+                    if (isImage) {
+                        el.setAttribute('src', this.value);
+                    } else if (isLink) {
+                        el.setAttribute('href', this.value);
+                    } else {
+                        el.textContent = this.value;
+                    }
+                    this.replaceWith(el);
+                    enableTextEditing();
+                };
+
+                editableElement.addEventListener('blur', revertToOriginal);
+                editableElement.addEventListener('keydown', function (event) {
+                    if (event.key === 'Tab' || event.key === 'Enter') {
+                        revertToOriginal.call(this);
+                    }
+                });
+                editableElement.addEventListener('focusout', revertToOriginal);
+
+                this.replaceWith(editableElement);
+                editableElement.focus();
+            });
+        });
+    }
+
+
+    function disableLinkClick() {
+        const links = renderer.querySelectorAll('a');
+        links.forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault(); // Verhindert das Standardverhalten des Links
+            });
+        });
+    }
+
+
+    function handleMouseMove(event) {
+        const leftWidth = event.clientX;
+        const rightWidth = container.offsetWidth - event.clientX - resizer.offsetWidth;
+        selector.style.width = `${leftWidth}px`;
+        selector.style.flex = 'none';
+    }
+
+    function renderTemplate(templateName) {
+        const template = templates.find(t => t.name === templateName);
+        if (template) {
+            renderer.innerHTML = template.content;
+            addComponentSelectors();
+            enableTextEditing();
+            disableLinkClick();
+            addRemoveButtonToComponents();
+
+        } else {
+            renderer.innerHTML = '<p>Unbekanntes Template</p>';
+        }
+    }
+
+    function addRemoveButtonToComponents() {
+        const componentItems = renderer.querySelectorAll('.component-item');
+        componentItems.forEach(item => {
+            if (!item.querySelector('.remove-component')) {
+                const removeButton = document.createElement('button');
+                removeButton.textContent = '-';
+                removeButton.className = 'remove-component';
+                removeButton.onclick = function () {
+                    item.remove();
+                };
+                item.appendChild(removeButton);
+            }
+        });
+    }
+
+
+    function addComponentSelectors() {
+
+        if (!listenersAdded) {
+
+            // Dragover-Event für das Renderer-Element
+            renderer.addEventListener('dragover', (e) => {
+                e.preventDefault();
+
+                const targetElement = e.target;
+                if (targetElement) {
+                    const rect = targetElement.getBoundingClientRect();
+                    const relativeMouseY = e.clientY - rect.top;
+
+                    const existingIndicator = renderer.querySelector('.drop-indicator');
+                    if (existingIndicator) {
+                        existingIndicator.remove();
+                    }
+
+                    const indicator = document.createElement('div');
+                    indicator.className = 'drop-indicator';
+
+                    if (relativeMouseY < rect.height / 2) {
+                        targetElement.parentNode.insertBefore(indicator, targetElement);
+                    } else {
+                        if (targetElement.nextSibling) {
+                            targetElement.parentNode.insertBefore(indicator, targetElement.nextSibling);
+                        } else {
+                            renderer.appendChild(indicator);
+                        }
+                    }
+
+                    // Rahmen zur übergeordneten Komponente hinzufügen
+                    targetElement.classList.add('parent-highlight');
+                }
+            });
+
+// Dragleave-Event für das Renderer-Element
+            renderer.addEventListener('dragleave', (e) => {
+                // Entfernen Sie den Drop-Indicator, wenn die Maus das Renderer-Element verlässt
+                const existingIndicator = renderer.querySelector('.drop-indicator');
+                if (existingIndicator) {
+                    existingIndicator.remove();
+                }
+
+                // Rahmen von der übergeordneten Komponente entfernen
+                const highlightedParent = renderer.querySelector('.parent-highlight');
+                if (highlightedParent) {
+                    highlightedParent.classList.remove('parent-highlight');
+                }
+            });
+
+
+            // Drop-Event für das Renderer-Element
+            renderer.addEventListener('drop', (e) => {
+                e.preventDefault();
+
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = e.dataTransfer.getData('text/plain');
+                const componentContent = tempDiv.firstChild;
+
+                // Container für die Komponente und den Minus-Button erstellen
+                const containerDiv = document.createElement('div');
+                containerDiv.className = 'component-item';
+
+                // Minus-Button hinzufügen
+                const removeButton = document.createElement('button');
+                removeButton.textContent = '-';
+                removeButton.className = 'remove-component';
+                removeButton.onclick = function () {
+                    containerDiv.remove();
+                };
+
+                containerDiv.appendChild(componentContent);
+                containerDiv.appendChild(removeButton);
+
+                const existingIndicator = renderer.querySelector('.drop-indicator');
+                if (existingIndicator) {
+                    existingIndicator.parentNode.insertBefore(containerDiv, existingIndicator);
+                    existingIndicator.remove();
+                } else {
+                    renderer.appendChild(containerDiv);
+                }
+
+                enableTextEditing();
+
+                // Rahmen von der übergeordneten Komponente entfernen
+                const highlightedParent = renderer.querySelector('.parent-highlight');
+                if (highlightedParent) {
+                    highlightedParent.classList.remove('parent-highlight');
+                }
+
+            });
+
+
+
+            listenersAdded = true;
+        }
+
+    }
+
+    function uploadNewTemplate() {
+        const fileInput = document.getElementById('newTemplateFile');
+        fileInput.click();
+    }
+
+
+    function checkInputs() {
+        const fileInput = document.getElementById('newTemplateFile');
+        const nameInput = document.getElementById('newTemplateName');
+        const addButton = document.getElementById('addButton');
+        const currentPathSpan = document.getElementById('currentTemplatePath');
+
+        if (fileInput.files.length > 0) {
+            currentPathSpan.textContent = fileInput.files[0].name;
+        } else {
+            currentPathSpan.textContent = 'Keine Datei ausgewählt';
+        }
+
+        if (fileInput.files.length > 0 && nameInput.value) {
+            addButton.disabled = false;
+        } else {
+            addButton.disabled = true;
+        }
+    }
+
+    function addNewTemplate() {
+        const fileInput = document.getElementById('newTemplateFile');
+        const nameInput = document.getElementById('newTemplateName');
+        const templateName = nameInput.value;
+
+        if (fileInput.files.length === 0 || !templateName) {
+            alert("Bitte wählen Sie eine Datei und geben Sie einen Namen für das Template an.");
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(event) {
+            const newTemplateContent = event.target.result;
+            const newTemplate = {
+                name: templateName,
+                imagePath: 'path/to/new-template-image.jpg', // Diese können Sie später ändern
+                content: newTemplateContent
+            };
+
+            templates.push(newTemplate);
+
+            // Template-Thumbnail im Selector hinzufügen
+            const img = document.createElement('img');
+            img.src = newTemplate.imagePath;  // Dies sollte später aktualisiert werden
+            img.alt = newTemplate.name;
+            img.className = 'template-image';
+            img.onclick = () => renderTemplate(newTemplate.name);
+            selector.appendChild(img);
+
+            // Eingabefelder zurücksetzen
+            nameInput.value = '';
+            fileInput.value = '';
+        };
+
+        reader.readAsText(file);
+    }
+
+    function clearRenderer() {
+        renderer.innerHTML = '';
+    }
+
+    async function fetchCSSContent(url) {
+        try {
+            const response = await fetch(url);
+            const cssContent = await response.text();
+            return cssContent;
+        } catch (error) {
+            console.error("Fehler beim Abrufen der CSS-Datei:", error);
+            return "";
+        }
+    }
+
+    async function downloadContent() {
+        // Erstellen Sie eine Kopie des aktuellen Inhalts
+        const contentClone = renderer.cloneNode(true);
+
+        // Ersetzen Sie jeden 'component-item'-Container durch seinen ersten Child (die eigentliche Komponente)
+        contentClone.querySelectorAll('.component-item').forEach(item => {
+            const actualContent = item.firstChild.cloneNode(true);
+            item.replaceWith(actualContent);
+        });
+
+        // CSS-Inhalt aus der main.css-Datei abrufen
+        const cssContent = await fetchCSSContent('main.css');
+
+        // Erstellen Sie einen Blob aus dem bereinigten Inhalt
+        const fullHTMLContent = `
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>HTML Template Renderer</title>
+        <style>
+            ${cssContent}
+        </style>
+    </head>
+    <body>
+        ${contentClone.innerHTML}
+    </body>
+    </html>
+    `;
+
+        const blob = new Blob([fullHTMLContent], {type: 'text/html'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'template.html';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function showImpressum() {
+        const impressumPopup = document.getElementById('impressumPopup');
+        impressumPopup.classList.remove('invisible');
+        impressumPopup.classList.add('visible');
+    }
+
+    function hideImpressum() {
+        const impressumPopup = document.getElementById('impressumPopup');
+        impressumPopup.classList.remove('visible');
+        impressumPopup.classList.add('invisible');
+    }
+
+</script>
+
+
+<div id="impressumPopup" class="hidden">
+    <div id="impressumContent">
+        <button id="closeButton" onclick="hideImpressum()">X</button>
+        <p>Editor</p>
+        <p>Dominik Bruhn</p>
+        <p>Holzwickeder Straße 109c</p>
+        <p>44309 Dortmund</p>
+    </div>
+</div>
+
+
+</body>
+</html>
