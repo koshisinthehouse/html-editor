@@ -178,6 +178,9 @@
 <div id="container">
     <div id="selector">
         <!-- Die Bilder werden dynamisch aus dem JSON geladen -->
+        <div id="templateContainer">
+            <!-- Hier werden die Template-Namen angezeigt -->
+        </div>
 
         <input type="file" id="newTemplateFile" style="display:none;">
         <button id="uploadButton" onclick="uploadNewTemplate()">Neues Template hochladen</button>
@@ -233,6 +236,10 @@
 
             // Eingabefelder zurücksetzen
             fileInput.value = '';
+
+            // Update des Template-Selectors
+            updateTemplateSelector();
+
         };
         reader.readAsText(file);
     });
@@ -240,18 +247,31 @@
     let listenersAdded = false;
 
     // JSON-Definition der Templates
-    const templates = [
-        {
-            name: 'Ebay Template',
-            imagePath: 'path/to/template1-image.jpg',
-            content: '<div><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><div class="layout"><div class="split"><div class="box"><h2>[ IHR LOGO ]</h2><h4>[ Ihr Slogan ]</h4></div></div><div class="split splitGap4"><div class="header secondaryColor card" style="border-radius: 0;"><a target="_blank" href="https://www.ebay.de/str/digitalu">SHOP</a>|<a href="https://www.ebay.de/fdbk/feedback_profile/dortmund.digital" target="_blank">VERKÄUFERPROFIL</a>|<a target="_blank" href="https://www.ebay.de/fdbk/feedback_profile/dortmund.digital">BEWERTUNGEN</a>|<a target="_blank" href="https://www.ebay.de/cnt/intermediatedFAQ?requested=dortmund.digital">KONTAKT</a>|<a target="_blank" href="https://www.ebay.de/usr/dortmund.digital#tab1">ÜBER UNS</a></div></div><div class="split split12 splitGap4 splitMobileReverse"><div class="split splitGap4"></div><div class="split splitGap4"></div></div><div class="split splitGap4"></div><div class="split splitGap4"></div><div class="split splitGap4"><div class="card secondaryColor"><div class="split split4 splitGap4 splitPadding4" style="border-radius: 0;"><div><h2>Unternehmen</h2><div>Diesen Bereich können Sie nutzen, um Ihr Unternehmen vorzustellen. Wählen Sie zwei bis drei prägnante Sätze, die Ihr Unternehmen von der Konkurrenz abhebt.</div></div><div><h2>Hinweis</h2><div>Der Kauf unserer Templates berechtigt Sie, diese unlimitiert für Ihre Auktionen zu verwenden. Ein Weiterverkauf oder die Weitergabe an Dritte ist jedoch untersagt.</div></div><div><h2>Weitere Angebote</h2><div>Viele weitere Angebote finden Sie in unserem eBay Shop oder erhalten Neuheiten und Aktionen bequem mit unserem Newsletter.</div></div><div><h2>Frage?</h2><div>Haben Sie Fragen zu unseren Angeboten? Kontaktieren Sie uns gerne über das eBay Kontaktformular.</div></div></div></div></div></div></div>\n'
-        },
-        {
-            name: 'template2',
-            imagePath: 'path/to/template2-image.jpg',
-            content: '<div id="content2"><h2>Template 2</h2><p>Dies ist das zweite Template.</p></div>'
+    const templates = [];
+
+    function updateTemplateSelector() {
+        // Alle aktuellen Template-Namen löschen
+        templateContainer.innerHTML = '';
+
+        if (templates.length === 0) {
+            // Keine Templates vorhanden
+            const noTemplatesText = document.createElement('p');
+            noTemplatesText.innerText = 'Keine Templates vorhanden';
+            templateContainer.appendChild(noTemplatesText);
+        } else {
+            // Templates vorhanden
+            templates.forEach(template => {
+                const templateNameDiv = document.createElement('div');
+                templateNameDiv.innerText = template.name;
+                templateNameDiv.onclick = () => renderTemplate(template.name);
+                templateNameDiv.className = 'template-name';
+                templateContainer.appendChild(templateNameDiv);
+            });
         }
-    ];
+    }
+
+    // Template-Selector beim Laden der Seite aktualisieren
+    updateTemplateSelector();
 
     // JSON-Definition der Komponenten
     const components = [
