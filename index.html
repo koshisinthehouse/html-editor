@@ -719,6 +719,12 @@
         const textEditInput = document.getElementById('textEditInput');
         const attributeInput = document.getElementById('attributeInput');
 
+        if (textEditInput.value.trim() === "") {
+            currentEditingElement.remove();
+            hideTextEditPopup();
+            return;
+        }
+
         currentEditingElement.textContent = textEditInput.value;
 
         if (currentEditingElement.tagName.toLowerCase() === 'a' && attributeInput.style.display !== 'none') {
