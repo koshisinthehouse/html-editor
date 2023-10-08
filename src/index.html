@@ -200,6 +200,7 @@
 <div id="toolbar">
     <button onclick="clearRenderer()">Inhalt löschen</button>
     <button onclick="downloadContent()">Als HTML herunterladen</button>
+    <button onclick="copyToClipboard()">In Zwischenablage kopieren</button>
     <button onclick="showImpressum()">Impressum</button>
 </div>
 <div id="container">
@@ -590,7 +591,7 @@
         }
     }
 
-    async function downloadContent() {
+    async function getFullHTMLContent() {
         // Erstellen Sie eine Kopie des aktuellen Inhalts
         const contentClone = renderer.cloneNode(true);
 
@@ -604,7 +605,7 @@
         const cssContent = await fetchCSSContent('main.css');
 
         // Erstellen Sie einen Blob aus dem bereinigten Inhalt
-        const fullHTMLContent = `
+        return `
     <!DOCTYPE html>
     <html lang="de">
     <head>
@@ -620,6 +621,11 @@
     </body>
     </html>
     `;
+    }
+
+
+    async function downloadContent() {
+        const fullHTMLContent = await getFullHTMLContent();
 
         const blob = new Blob([fullHTMLContent], {type: 'text/html'});
         const url = URL.createObjectURL(blob);
@@ -629,6 +635,7 @@
         a.click();
         URL.revokeObjectURL(url);
     }
+
 
     function showImpressum() {
         const impressumPopup = document.getElementById('impressumPopup');
@@ -642,6 +649,19 @@
         impressumPopup.classList.add('invisible');
     }
 
+
+    async function copyToClipboard() {
+        const fullHTMLContent = await getFullHTMLContent();
+
+        // Kopieren Sie den Inhalt in die Zwischenablage
+        try {
+            await navigator.clipboard.writeText(fullHTMLContent);
+            alert("Inhalt wurde in die Zwischenablage kopiert!");
+        } catch (err) {
+            console.error("Fehler beim Kopieren in die Zwischenablage:", err);
+            alert("Es gab ein Problem beim Kopieren in die Zwischenablage.");
+        }
+    }
 
 
 
