@@ -61,6 +61,29 @@
             height: 100%;
         }
 
+        /* Stil für das neue Popup-Fenster */
+        #textEditPopup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7); /* Halbtransparenter Hintergrund */
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Stellen Sie sicher, dass das Popup über anderen Elementen angezeigt wird */
+        }
+
+        #textEditContent {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            position: relative;
+            width: 50%;
+            max-width: 500px; /* Maximale Breite für das Popup */
+        }
+
 
         .template-image {
             width: 100px;
@@ -370,6 +393,13 @@
                 this.classList.remove('hover-highlight');
             });
 
+
+            // Klick-Ereignis ändern, um das Popup-Fenster anzuzeigen
+            el.addEventListener('click', function (e) {
+                e.stopPropagation(); // Verhindert, dass das Klick-Ereignis an übergeordnete Elemente weitergegeben wird
+                showTextEditPopup(this);
+            });
+
             // Doppelklick-Ereignis hinzufügen
             el.addEventListener('dblclick', function () {
 
@@ -643,8 +673,53 @@
         impressumPopup.classList.add('invisible');
     }
 
+
+
+
+
+    let currentEditingElement = null;
+
+    function showTextEditPopup(element) {
+        const textEditPopup = document.getElementById('textEditPopup');
+        const textEditInput = document.getElementById('textEditInput');
+        textEditInput.value = element.textContent;
+        currentEditingElement = element;
+        textEditPopup.style.display = 'flex';
+
+        // Deaktivieren Sie die Interaktion mit dem Hintergrund
+        document.body.style.pointerEvents = 'none';
+        textEditPopup.style.pointerEvents = 'auto';
+    }
+
+    function hideTextEditPopup() {
+        const textEditPopup = document.getElementById('textEditPopup');
+        textEditPopup.style.display = 'none';
+        currentEditingElement = null;
+
+        // Aktivieren Sie die Interaktion mit dem Hintergrund wieder
+        document.body.style.pointerEvents = 'auto';
+    }
+
+    function saveTextChanges() {
+        const textEditInput = document.getElementById('textEditInput');
+        currentEditingElement.textContent = textEditInput.value;
+        hideTextEditPopup();
+    }
+
+
+
+
+
+
 </script>
 
+<div id="textEditPopup">
+    <div id="textEditContent">
+        <textarea id="textEditInput" style="width: 100%; height: 100px;"></textarea>
+        <button onclick="saveTextChanges()">Speichern</button>
+        <button onclick="hideTextEditPopup()">Abbrechen</button>
+    </div>
+</div>
 
 <div id="impressumPopup" class="hidden">
     <div id="impressumContent">
