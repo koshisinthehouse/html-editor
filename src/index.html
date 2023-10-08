@@ -400,55 +400,6 @@
                 showTextEditPopup(this);
             });
 
-            // Doppelklick-Ereignis hinzufügen
-            el.addEventListener('dblclick', function () {
-
-                let editableElement;
-                let isImage = el.tagName.toLowerCase() === 'img';
-                let isLink = el.tagName.toLowerCase() === 'a';
-
-                if (isImage) {
-                    editableElement = document.createElement('input');
-                    editableElement.value = el.getAttribute('src');
-                    editableElement.placeholder = 'Bild-URL eingeben';
-                } else if (isLink) {
-                    editableElement = document.createElement('input');
-                    editableElement.value = el.getAttribute('href');
-                    editableElement.placeholder = 'Link-URL eingeben';
-                } else if (this.textContent.includes('\n') || this.textContent.length > 40) {
-                    editableElement = document.createElement('textarea');
-                    editableElement.style.height = '100%';
-                    editableElement.value = this.textContent;
-                } else {
-                    editableElement = document.createElement('input');
-                    editableElement.value = this.textContent;
-                }
-
-                editableElement.style.width = '100%';
-
-                const revertToOriginal = function () {
-                    if (isImage) {
-                        el.setAttribute('src', this.value);
-                    } else if (isLink) {
-                        el.setAttribute('href', this.value);
-                    } else {
-                        el.textContent = this.value;
-                    }
-                    this.replaceWith(el);
-                    enableTextEditing();
-                };
-
-                editableElement.addEventListener('blur', revertToOriginal);
-                editableElement.addEventListener('keydown', function (event) {
-                    if (event.key === 'Tab' || event.key === 'Enter') {
-                        revertToOriginal.call(this);
-                    }
-                });
-                editableElement.addEventListener('focusout', revertToOriginal);
-
-                this.replaceWith(editableElement);
-                editableElement.focus();
-            });
         });
     }
 
@@ -682,14 +633,40 @@
     function showTextEditPopup(element) {
         const textEditPopup = document.getElementById('textEditPopup');
         const textEditInput = document.getElementById('textEditInput');
-        textEditInput.value = element.textContent;
+        const attributeInput = document.getElementById('attributeInput');
+        const attributeLabel = document.getElementById('attributeLabel');
+
         currentEditingElement = element;
+
+        if (element.tagName.toLowerCase() === 'a') {
+            attributeLabel.textContent = "Link-URL:";
+            textEditInput.style.display = 'block';
+            textEditInput.value = element.textContent;
+            attributeInput.style.display = 'block';
+            attributeLabel.style.display = 'block';
+            attributeInput.value = element.getAttribute('href');
+        } else if (element.tagName.toLowerCase() === 'img') {
+            attributeLabel.textContent = "Bild-URL:";
+            textEditInput.style.display = 'none';
+            attributeInput.style.display = 'block';
+            attributeLabel.style.display = 'block';
+            attributeInput.value = element.getAttribute('src');
+        } else {
+            textEditInput.style.display = 'block';
+            textEditInput.value = element.textContent;
+            attributeInput.style.display = 'none';
+            attributeLabel.style.display = 'none';
+        }
+
         textEditPopup.style.display = 'flex';
 
         // Deaktivieren Sie die Interaktion mit dem Hintergrund
         document.body.style.pointerEvents = 'none';
         textEditPopup.style.pointerEvents = 'auto';
     }
+
+
+
 
     function hideTextEditPopup() {
         const textEditPopup = document.getElementById('textEditPopup');
@@ -702,7 +679,16 @@
 
     function saveTextChanges() {
         const textEditInput = document.getElementById('textEditInput');
+        const attributeInput = document.getElementById('attributeInput');
+
         currentEditingElement.textContent = textEditInput.value;
+
+        if (currentEditingElement.tagName.toLowerCase() === 'a' && attributeInput.style.display !== 'none') {
+            currentEditingElement.setAttribute('href', attributeInput.value);
+        } else if (currentEditingElement.tagName.toLowerCase() === 'img' && attributeInput.style.display !== 'none') {
+            currentEditingElement.setAttribute('src', attributeInput.value);
+        }
+
         hideTextEditPopup();
     }
 
@@ -715,11 +701,15 @@
 
 <div id="textEditPopup">
     <div id="textEditContent">
-        <textarea id="textEditInput" style="width: 100%; height: 100px;"></textarea>
+        <label>Text:</label>
+        <label for="textEditInput"></label><textarea id="textEditInput" style="width: 100%; height: 100px;"></textarea>
+        <label id="attributeLabel">Link-URL:</label>
+        <label for="attributeInput"></label><input type="text" id="attributeInput" style="display: none; width: 100%;" />
         <button onclick="saveTextChanges()">Speichern</button>
         <button onclick="hideTextEditPopup()">Abbrechen</button>
     </div>
 </div>
+
 
 <div id="impressumPopup" class="hidden">
     <div id="impressumContent">
