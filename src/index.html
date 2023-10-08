@@ -84,6 +84,10 @@
             max-width: 500px; /* Maximale Breite für das Popup */
         }
 
+        .template-image.selected-template {
+            border: 3px solid #0099ff;
+        }
+
 
         .template-image {
             width: 100px;
@@ -263,7 +267,10 @@
             // Update des Template-Selectors
             updateTemplateSelector();
 
+            // Das neu hinzugefügte Template direkt rendern
+            renderTemplate(templateName);
         };
+
         reader.readAsText(file);
     });
 
@@ -297,7 +304,7 @@
     updateTemplateSelector();
 
     // JSON-Definition der Komponenten
-    const components = [
+    let components = [
         {
             name: 'Einfacher Text',
             content: '<p>Einfacher Text</p>'
@@ -314,6 +321,8 @@
             content: '<img src="https://www.taxlancer.de/img/products/small_product_3_transparent.png"/>'
         }
     ];
+
+    components = [];
 
     const thirdColumn = document.getElementById('third-column');
     components.forEach(component => {
@@ -430,6 +439,15 @@
             disableLinkClick();
             addRemoveButtonToComponents();
 
+            // Hinzufügen der selected-template-Klasse zum ausgewählten Template-Bild
+            const allTemplateImages = selector.querySelectorAll('.template-image');
+            allTemplateImages.forEach(img => {
+                if (img.alt === templateName) {
+                    img.classList.add('selected-template');
+                } else {
+                    img.classList.remove('selected-template');
+                }
+            });
         } else {
             renderer.innerHTML = '<p>Unbekanntes Template</p>';
         }
