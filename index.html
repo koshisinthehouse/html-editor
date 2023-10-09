@@ -6,14 +6,56 @@
     <title>HTML Template Renderer</title>
     <style>
 
+        * {
+            --color: #383838;
+            --background-color: #ffffff;
+            --border-color: #a1a1a1;
+            --selected-color: #6b97bd;
+            --secondary-color-text: #ffffff;
+            --secondary-color-background: #1e1e1e;
+
+            --space: 4px;
+            --space-2: 16px;
+            --space-3: 24px;
+            --space-4: 32px;
+            --space-6: 48px;
+            --space-8: 64px;
+
+            font-family: "Helvetica Neue", Helvetica, Arial, Calibri, Futura, "Gill Sans", "Gill Sans MT", sans-serif;
+            text-rendering: optimizeLegibility;
+        }
+
+        /** button - start */
+        .button {
+            color: var(--secondary-color-text);
+            font-weight: bold;
+            background-color: var(--secondary-color-background);
+            border-radius: 0;
+            display: block;
+            text-align: center;
+            padding: var(--space-2) var(--space-4);
+            text-transform: uppercase;
+            box-sizing: border-box;
+            width: max-content;
+            text-decoration: none;
+        }
+
+        .button:hover {
+            color: var(--secondary-color-background);
+            background-color: var(--secondary-color-text);
+            outline: 2px var(--secondary-color-background) solid;
+        }
+        /** button - end */
+
         #toolbar {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
-            background-color: #333;
-            color: #fff;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--color);
             padding: 10px;
+            box-sizing: border-box;
             display: flex;
             justify-content: flex-end;
             gap: 10px;
@@ -28,7 +70,7 @@
         #selector {
             flex: 1;
             padding: 20px;
-            border-right: 1px solid #ccc;
+            border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -38,7 +80,7 @@
         #renderer {
             flex: 2;
             padding: 20px;
-            border-right: 1px solid #ccc; /* Hinzugefügt, um die dritte Spalte vom Renderer zu trennen */
+            border-right: 1px solid var(--border-color); /* Hinzugefügt, um die dritte Spalte vom Renderer zu trennen */
         }
 
         #third-column {
@@ -49,14 +91,14 @@
 
         #resizer {
             cursor: ew-resize;
-            background-color: #ccc;
+            background-color: var(--border-color);
             width: 10px;
             height: 100%;
         }
 
         #resizer2 {
             cursor: ew-resize;
-            background-color: #ccc;
+            background-color: var(--border-color);
             width: 10px;
             height: 100%;
         }
@@ -85,7 +127,7 @@
         }
 
         .template-image.selected-template {
-            border: 3px solid #0099ff;
+            border: 3px solid var(--selected-color);
         }
 
 
@@ -105,7 +147,7 @@
             display: none;
             position: absolute;
             background-color: #f9f9f9;
-            border: 1px solid #ccc;
+            border: 1px solid var(--border-color);
             z-index: 1;
             top: 0;
             right: 0;
@@ -140,7 +182,7 @@
             top: 0;
             right: 0;
             background-color: red;
-            color: white;
+            color: var(--color);
             border: none;
             cursor: pointer;
         }
@@ -193,15 +235,14 @@
         }
 
 
-
     </style>
 </head>
 <body>
 <div id="toolbar">
-    <button onclick="clearRenderer()">Inhalt löschen</button>
-    <button onclick="downloadContent()">Als HTML herunterladen</button>
-    <button onclick="copyToClipboard()">In Zwischenablage kopieren</button>
-    <button onclick="showImpressum()">Impressum</button>
+    <button class="button" onclick="clearRenderer()">Inhalt löschen</button>
+    <button class="button" onclick="downloadContent()">Als HTML herunterladen</button>
+    <button class="button" onclick="copyToClipboard()">In Zwischenablage kopieren</button>
+    <button class="button" onclick="showImpressum()">Impressum</button>
 </div>
 <div id="container">
     <div id="selector">
@@ -211,7 +252,7 @@
         </div>
 
         <input type="file" id="newTemplateFile" style="display:none;">
-        <button id="uploadButton" onclick="uploadNewTemplate()">Neues Template hochladen</button>
+        <button class="button" id="uploadButton" onclick="uploadNewTemplate()">Neues Template hochladen</button>
 
     </div>
     <div id="resizer"></div>
@@ -231,7 +272,7 @@
     const renderer = document.getElementById('renderer');
 
     const templateFileInput = document.getElementById('newTemplateFile');
-    templateFileInput.addEventListener('change', function() {
+    templateFileInput.addEventListener('change', function () {
 
         const fileInput = document.getElementById('newTemplateFile');
 
@@ -244,7 +285,7 @@
         const templateName = file.name.replace(/\.[^/.]+$/, "");  // Entfernt die Dateierweiterung
 
         const reader = new FileReader();
-        reader.onload = function(event) {
+        reader.onload = function (event) {
             const newTemplateContent = event.target.result;
             const newTemplate = {
                 name: templateName,
@@ -564,7 +605,6 @@
             });
 
 
-
             listenersAdded = true;
         }
 
@@ -664,8 +704,6 @@
     }
 
 
-
-
     let currentEditingElement = null;
 
     function showTextEditPopup(element) {
@@ -704,8 +742,6 @@
     }
 
 
-
-
     function hideTextEditPopup() {
         const textEditPopup = document.getElementById('textEditPopup');
         textEditPopup.style.display = 'none';
@@ -737,10 +773,6 @@
     }
 
 
-
-
-
-
 </script>
 
 <div id="textEditPopup">
@@ -748,9 +780,17 @@
         <label>Text:</label>
         <label for="textEditInput"></label><textarea id="textEditInput" style="width: 100%; height: 100px;"></textarea>
         <label id="attributeLabel">Link-URL:</label>
-        <label for="attributeInput"></label><input type="text" id="attributeInput" style="display: none; width: 100%;" />
-        <button onclick="saveTextChanges()">Speichern</button>
-        <button onclick="hideTextEditPopup()">Abbrechen</button>
+        <label for="attributeInput"></label><input type="text" id="attributeInput" style="display: none; width: 100%;"/>
+        <table>
+            <tr>
+                <td>
+                    <button class="button" onclick="saveTextChanges()">Speichern</button>
+                </td>
+                    <td>
+                    <button class="button" onclick="hideTextEditPopup()">Abbrechen</button>
+                </td>
+            </tr>
+        </table>
     </div>
 </div>
 
