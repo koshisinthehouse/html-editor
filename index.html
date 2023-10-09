@@ -45,6 +45,7 @@
             background-color: var(--secondary-color-text);
             outline: 2px var(--secondary-color-background) solid;
         }
+
         /** button - end */
 
         #toolbar {
@@ -63,8 +64,8 @@
 
         #container {
             display: flex;
-            height: calc(100vh - 40px); /* Abzüglich der Toolbar-Höhe */
-            margin-top: 40px; /* Höhe der Toolbar */
+            height: calc(100vh - 80px); /* Abzüglich der Toolbar-Höhe */
+            margin-top: 80px; /* Höhe der Toolbar */
         }
 
         #selector {
@@ -76,6 +77,30 @@
             align-items: center;
             gap: 20px;
         }
+
+
+        .template-box {
+            width: 150px;
+            height: 150px;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            transition: border-color 0.3s;
+            background-color: black;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px; /* Abstand zum Template-Namen */
+        }
+
+        .template-box.selected-template {
+            border: 3px solid var(--selected-color);
+        }
+
+        .template-box:hover {
+            border-color: #000;
+        }
+
 
         #renderer {
             flex: 2;
@@ -124,23 +149,6 @@
             position: relative;
             width: 50%;
             max-width: 500px; /* Maximale Breite für das Popup */
-        }
-
-        .template-image.selected-template {
-            border: 3px solid var(--selected-color);
-        }
-
-
-        .template-image {
-            width: 100px;
-            height: 100px;
-            cursor: pointer;
-            border: 1px solid #ccc;
-            transition: border-color 0.3s;
-        }
-
-        .template-image:hover {
-            border-color: #000;
         }
 
         .component-selector {
@@ -227,13 +235,6 @@
             position: relative;
         }
 
-        #closeButton {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            cursor: pointer;
-        }
-
 
     </style>
 </head>
@@ -246,13 +247,13 @@
 </div>
 <div id="container">
     <div id="selector">
+        <input type="file" id="newTemplateFile" style="display:none;">
+        <button class="button" id="uploadButton" onclick="uploadNewTemplate()">Neues Template hochladen</button>
+
         <!-- Die Bilder werden dynamisch aus dem JSON geladen -->
         <div id="templateContainer">
             <!-- Hier werden die Template-Namen angezeigt -->
         </div>
-
-        <input type="file" id="newTemplateFile" style="display:none;">
-        <button class="button" id="uploadButton" onclick="uploadNewTemplate()">Neues Template hochladen</button>
 
     </div>
     <div id="resizer"></div>
@@ -289,19 +290,17 @@
             const newTemplateContent = event.target.result;
             const newTemplate = {
                 name: templateName,
-                imagePath: 'path/to/new-template-image.jpg',  // Diese können Sie später ändern
                 content: newTemplateContent
             };
 
             templates.push(newTemplate);
 
             // Template-Thumbnail im Selector hinzufügen
-            const img = document.createElement('img');
-            img.src = newTemplate.imagePath;  // Dies sollte später aktualisiert werden
-            img.alt = newTemplate.name;
-            img.className = 'template-image';
-            img.onclick = () => renderTemplate(newTemplate.name);
-            selector.appendChild(img);
+            const div = document.createElement('div');
+            div.className = 'template-box';
+            div.innerText = newTemplate.name
+            div.onclick = () => renderTemplate(newTemplate.name);
+            selector.appendChild(div);
 
             // Eingabefelder zurücksetzen
             fileInput.value = '';
@@ -323,6 +322,7 @@
 
     function updateTemplateSelector() {
         // Alle aktuellen Template-Namen löschen
+        const templateContainer = document.getElementById("templateContainer");
         templateContainer.innerHTML = '';
 
         if (templates.length === 0) {
@@ -330,15 +330,6 @@
             const noTemplatesText = document.createElement('p');
             noTemplatesText.innerText = 'Keine Templates vorhanden';
             templateContainer.appendChild(noTemplatesText);
-        } else {
-            // Templates vorhanden
-            templates.forEach(template => {
-                const templateNameDiv = document.createElement('div');
-                templateNameDiv.innerText = template.name;
-                templateNameDiv.onclick = () => renderTemplate(template.name);
-                templateNameDiv.className = 'template-name';
-                templateContainer.appendChild(templateNameDiv);
-            });
         }
     }
 
@@ -383,12 +374,12 @@
 
     // Bilder aus dem JSON dynamisch hinzufügen
     templates.forEach(template => {
-        const img = document.createElement('img');
-        img.src = template.imagePath;
-        img.alt = template.name;
-        img.className = 'template-image';
-        img.onclick = () => renderTemplate(template.name);
-        selector.appendChild(img);
+        const div = document.createElement('div');
+        div.className = 'template-box';
+        div.innerText = template.name;
+        div.onclick = () => renderTemplate(template.name);
+        selector.appendChild(div);
+
     });
 
     resizer.addEventListener('mousedown', (event) => {
@@ -482,12 +473,13 @@
             addRemoveButtonToComponents();
 
             // Hinzufügen der selected-template-Klasse zum ausgewählten Template-Bild
-            const allTemplateImages = selector.querySelectorAll('.template-image');
-            allTemplateImages.forEach(img => {
-                if (img.alt === templateName) {
-                    img.classList.add('selected-template');
+            const allElements = selector.querySelectorAll('.template-box');
+            allElements.forEach(element => {
+                let clazzName = 'selected-template';
+                if (element.classList.contains(clazzName)) {
+                    element.classList.remove(clazzName);
                 } else {
-                    img.classList.remove('selected-template');
+                    element.classList.add(clazzName);
                 }
             });
         } else {
@@ -786,7 +778,7 @@
                 <td>
                     <button class="button" onclick="saveTextChanges()">Speichern</button>
                 </td>
-                    <td>
+                <td>
                     <button class="button" onclick="hideTextEditPopup()">Abbrechen</button>
                 </td>
             </tr>
@@ -797,11 +789,12 @@
 
 <div id="impressumPopup" class="hidden">
     <div id="impressumContent">
-        <button id="closeButton" onclick="hideImpressum()">X</button>
-        <p>Editor</p>
         <p>Dominik Bruhn</p>
         <p>Holzwickeder Straße 109c</p>
         <p>44309 Dortmund</p>
+        <p></p>
+        <p>Email: dominikbruhn@googlemail.com</p>
+        <button class="button" id="closeButton" onclick="hideImpressum()">Schließen</button>
     </div>
 </div>
 
