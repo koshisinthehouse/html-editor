@@ -1,2 +1,2 @@
-# nidoca-editor
-nidoca editor
+# html-editor
+html editor
