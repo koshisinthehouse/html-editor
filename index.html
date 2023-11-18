@@ -420,12 +420,12 @@
         textElements.forEach(el => {
 
             // Wenn das Element ein div ist, überprüfen Sie, ob es nur Text enthält
-            //if (el.tagName.toLowerCase() === 'div') {
-                //const hasOnlyText = Array.from(el.childNodes).every(node => node.nodeType === 3);
-                //if (!hasOnlyText) {
-                    //return;
-                //}
-            //}
+            if (el.tagName.toLowerCase() === 'div') {
+                const hasOnlyText = Array.from(el.childNodes).every(node => node.nodeType === 3);
+                if (!hasOnlyText) {
+                    return;
+                }
+            }
 
             // Hover-Effekt hinzufügen
             el.addEventListener('mouseover', function () {
